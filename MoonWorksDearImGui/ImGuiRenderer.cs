@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using MoonWorks;
@@ -67,6 +68,8 @@ public class ImGuiRenderer
 	private readonly Sampler _sampler;
 
 	private Matrix4x4 _proj;
+
+	private readonly Dictionary<IntPtr, Texture> _textures = new Dictionary<IntPtr, Texture>();
 
 	public ImGuiRenderer(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
@@ -195,12 +198,19 @@ public class ImGuiRenderer
 			vtxOffset += (uint)list.VtxBuffer.Size;
 			idxOffset += (uint)list.IdxBuffer.Size;
 		}
+		
+		_textures.Clear();
 	}
 
-	private Texture? Lookup(IntPtr handle)
+	public IntPtr BindTexture(Texture texture)
 	{
-		// TODO: CUSTOM TEXTURE SUPPORT
-		return _inbuiltTexture;
+		_textures.TryAdd(texture.Handle, texture);
+		return texture.Handle;
+	}
+
+	private Texture Lookup(IntPtr handle)
+	{
+		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : _textures[handle];
 	}
 
 	public void Resize(Window window)

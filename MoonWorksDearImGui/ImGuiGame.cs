@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using ImGuiNET;
 using MoonWorks;
 using MoonWorks.Graphics;
@@ -29,6 +30,7 @@ namespace MoonWorksDearImGui;
 public class ImGuiGame : Game
 {
 	private readonly ImGuiRenderer _imRenderer;
+	private readonly Texture _texture;
 	
 	public ImGuiGame(WindowCreateInfo windowCreateInfo, FrameLimiterSettings frameLimiterSettings,
 		int targetTimestep = 60, bool debugMode = false) : base(windowCreateInfo, frameLimiterSettings, targetTimestep,
@@ -36,6 +38,7 @@ public class ImGuiGame : Game
 	{
 		var cb = GraphicsDevice.AcquireCommandBuffer();
 		_imRenderer = new ImGuiRenderer(GraphicsDevice, cb, MainWindow);
+		_texture = Texture.LoadPNG(GraphicsDevice, cb, "Content/Example.png");
 		GraphicsDevice.Submit(cb);
 	}
 
@@ -49,6 +52,12 @@ public class ImGuiGame : Game
 		ImGui.NewFrame();
 		
 		ImGui.ShowDemoWindow();
+
+		if (ImGui.Begin("Example texture"))
+		{
+			ImGui.Image(_imRenderer.BindTexture(_texture), new Vector2(500, 400));
+		}
+		ImGui.End();
 		
 		ImGui.Render();
 
