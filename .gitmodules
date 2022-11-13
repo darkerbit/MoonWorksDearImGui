@@ -1,0 +1,6 @@
+[submodule "lib/MoonWorks"]
+	path = lib/MoonWorks
+	url = https://gitea.moonside.games/MoonsideGames/MoonWorks.git
+[submodule "lib/ImGui.NET"]
+	path = lib/ImGui.NET
+	url = https://github.com/mellinoe/ImGui.NET.git

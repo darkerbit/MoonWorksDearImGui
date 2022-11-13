@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoonWorksDearImGui", "MoonWorksDearImGui\MoonWorksDearImGui.csproj", "{2108104A-FFBC-400E-81E3-7C6B8D92B098}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImGui.NET", "lib\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj", "{4C0548ED-B9F8-47B9-8F2B-5A7BFF69BF8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoonWorks", "lib\MoonWorks\MoonWorks.csproj", "{47643FA1-A3EA-416E-AADC-9E8596F7702D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release|x64 = Release|x64
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{47643FA1-A3EA-416E-AADC-9E8596F7702D}.Release|x64.ActiveCfg = Release|x64
+		{47643FA1-A3EA-416E-AADC-9E8596F7702D}.Release|x64.Build.0 = Release|x64
+		{47643FA1-A3EA-416E-AADC-9E8596F7702D}.Debug|x64.ActiveCfg = Debug|x64
+		{47643FA1-A3EA-416E-AADC-9E8596F7702D}.Debug|x64.Build.0 = Debug|x64
+		{2108104A-FFBC-400E-81E3-7C6B8D92B098}.Release|x64.ActiveCfg = Release|x64
+		{2108104A-FFBC-400E-81E3-7C6B8D92B098}.Release|x64.Build.0 = Release|x64
+		{2108104A-FFBC-400E-81E3-7C6B8D92B098}.Debug|x64.ActiveCfg = Debug|x64
+		{2108104A-FFBC-400E-81E3-7C6B8D92B098}.Debug|x64.Build.0 = Debug|x64
+		{4C0548ED-B9F8-47B9-8F2B-5A7BFF69BF8D}.Release|x64.ActiveCfg = Release|Any CPU
+		{4C0548ED-B9F8-47B9-8F2B-5A7BFF69BF8D}.Release|x64.Build.0 = Release|Any CPU
+		{4C0548ED-B9F8-47B9-8F2B-5A7BFF69BF8D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4C0548ED-B9F8-47B9-8F2B-5A7BFF69BF8D}.Debug|x64.Build.0 = Debug|Any CPU
+	EndGlobalSection
+EndGlobal
