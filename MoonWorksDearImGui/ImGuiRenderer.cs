@@ -91,7 +91,9 @@ public class ImGuiRenderer
 		_vertBuf = Buffer.Create<ImGuiVert>(gd, BufferUsageFlags.Vertex, 1024 * 4);
 		_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, 1024 * 6);
 
-		ImGui.GetIO().Fonts.AddFontDefault();
+		var io = ImGui.GetIO();
+		io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
+		io.Fonts.AddFontDefault();
 		UploadInbuiltTexture(gd, cb);
 		
 		BuildPipeline(gd, window);
