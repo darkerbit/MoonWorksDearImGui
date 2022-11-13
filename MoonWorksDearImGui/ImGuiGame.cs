@@ -44,10 +44,6 @@ public class ImGuiGame : Game
 
 	protected override void Update(TimeSpan delta)
 	{
-	}
-
-	protected override void Draw(double alpha)
-	{
 		_imRenderer.NewFrame(Inputs);
 		ImGui.NewFrame();
 		
@@ -71,5 +67,9 @@ public class ImGuiGame : Game
 		cb.EndRenderPass();
 		
 		GraphicsDevice.Submit(cb);
+	}
+
+	protected override void Draw(double alpha)
+	{
 	}
 }
