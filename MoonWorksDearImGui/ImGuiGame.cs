@@ -42,6 +42,9 @@ public class ImGuiGame : Game
 		GraphicsDevice.Submit(cb);
 	}
 
+	// ImGuiRenderer can be called from either Update or Draw, though the way I prefer to do things is
+	// to do most of the ImGui calls + the BuildBuffers in Update, and then the actual render in Render.
+	
 	protected override void Update(TimeSpan delta)
 	{
 		_imRenderer.NewFrame(Inputs);
@@ -58,18 +61,19 @@ public class ImGuiGame : Game
 		ImGui.Render();
 
 		var cb = GraphicsDevice.AcquireCommandBuffer();
-		var swapchainTexture = cb.AcquireSwapchainTexture(MainWindow);
-		
 		_imRenderer.BuildBuffers(ImGui.GetDrawData(), GraphicsDevice, cb);
+		GraphicsDevice.Submit(cb);
+	}
+
+	protected override void Draw(double alpha)
+	{
+		var cb = GraphicsDevice.AcquireCommandBuffer();
+		var swapchainTexture = cb.AcquireSwapchainTexture(MainWindow);
 		
 		cb.BeginRenderPass(new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue));
 		_imRenderer.Render(cb);
 		cb.EndRenderPass();
 		
 		GraphicsDevice.Submit(cb);
-	}
-
-	protected override void Draw(double alpha)
-	{
 	}
 }

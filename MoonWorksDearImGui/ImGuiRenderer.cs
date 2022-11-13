@@ -200,14 +200,17 @@ public class ImGuiRenderer
 			vtxOffset += (uint)list.VtxBuffer.Size;
 			idxOffset += (uint)list.IdxBuffer.Size;
 		}
-		
-		_textures.Clear();
 	}
 
 	public IntPtr BindTexture(Texture texture)
 	{
 		_textures.TryAdd(texture.Handle, texture);
 		return texture.Handle;
+	}
+
+	public void UnbindTexture(Texture texture)
+	{
+		_textures.Remove(texture.Handle);
 	}
 
 	private Texture Lookup(IntPtr handle)
