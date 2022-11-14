@@ -69,7 +69,14 @@ public class ImGuiRenderer
 
 	private Matrix4x4 _proj;
 
-	private readonly Dictionary<IntPtr, Texture> _textures = new Dictionary<IntPtr, Texture>();
+	private readonly Dictionary<IntPtr, Texture> _textures = new();
+	
+	private readonly bool[] _pressed;
+
+	private bool _left, _mid, _right;
+
+	private int _oldMouseX, _oldMouseY;
+	private int _curMouseX, _curMouseY;
 
 	public ImGuiRenderer(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
@@ -98,146 +105,25 @@ public class ImGuiRenderer
 		
 		BuildPipeline(gd, window);
 	}
-
-	public void UploadInbuiltTexture(GraphicsDevice gd, CommandBuffer cb)
+	
+	/// <summary>
+	/// Updates input state.
+	/// </summary>
+	/// <remarks>
+	/// Call inside <see cref="Game.Update"/>.
+	/// </remarks>
+	/// <param name="inputs">Current input state</param>
+	public void Update(Inputs inputs)
 	{
+		_oldMouseX = _curMouseX;
+		_oldMouseY = _curMouseY;
+
+		_curMouseX = inputs.Mouse.X;
+		_curMouseY = inputs.Mouse.Y;
+
 		var io = ImGui.GetIO();
 
-		io.Fonts.GetTexDataAsRGBA32(out IntPtr pixelPtr, out var width, out var height, out var bpp);
-		
-		_inbuiltTexture?.Dispose();
-		_inbuiltTexture = Texture.CreateTexture2D(gd, (uint)width, (uint)height, TextureFormat.R8G8B8A8, TextureUsageFlags.Sampler);
-
-		cb.SetTextureData(_inbuiltTexture, pixelPtr, (uint)(width * height * bpp));
-
-		io.Fonts.SetTexID(_inbuiltTexture.Handle);
-	}
-
-	private void BuildPipeline(GraphicsDevice gd, Window window)
-	{
-		var gpci = new GraphicsPipelineCreateInfo
-		{
-			AttachmentInfo = new GraphicsPipelineAttachmentInfo(
-				new ColorAttachmentDescription(window.SwapchainFormat, ColorAttachmentBlendState.NonPremultiplied)
-			),
-			DepthStencilState = DepthStencilState.Disable,
-			MultisampleState = MultisampleState.None,
-			PrimitiveType = PrimitiveType.TriangleList,
-			RasterizerState = RasterizerState.CW_CullNone,
-			VertexInputState = new VertexInputState
-			{
-				VertexBindings = new[] { VertexBinding.Create<ImGuiVert>() },
-				VertexAttributes = new[]
-				{
-					VertexAttribute.Create<ImGuiVert>("Position", 0),
-					VertexAttribute.Create<ImGuiVert>("Uv", 1),
-					VertexAttribute.Create<ImGuiVert>("Col", 2),
-				},
-			},
-			VertexShaderInfo = GraphicsShaderInfo.Create<ImGuiVertUniform>(_vertShader, "main", 0),
-			FragmentShaderInfo = GraphicsShaderInfo.Create(_fragShader, "main", 1),
-		};
-
-		_pipeline = new GraphicsPipeline(gd, gpci);
-	}
-
-	public unsafe void BuildBuffers(ImDrawDataPtr data, GraphicsDevice gd, CommandBuffer cb)
-	{
-		if (data.TotalVtxCount > _vertBuf.Size / sizeof(ImGuiVert))
-		{
-			_vertBuf.Dispose();
-			_vertBuf = Buffer.Create<ImGuiVert>(gd, BufferUsageFlags.Vertex, (uint) data.TotalVtxCount);
-		}
-
-		if (data.TotalIdxCount > _idxBuf.Size / sizeof(ushort))
-		{
-			_idxBuf.Dispose();
-			_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, (uint) data.TotalIdxCount);
-		}
-		
-		uint vtxOffset = 0;
-		uint idxOffset = 0;
-
-		for (var i = 0; i < data.CmdListsCount; i++)
-		{
-			var list = data.CmdListsRange[i];
-
-			cb.SetBufferData<ImGuiVert>(_vertBuf, list.VtxBuffer.Data, vtxOffset, (uint)list.VtxBuffer.Size);
-			cb.SetBufferData<ushort>(_idxBuf, list.IdxBuffer.Data, idxOffset, (uint)list.IdxBuffer.Size);
-
-			vtxOffset += (uint)list.VtxBuffer.Size;
-			idxOffset += (uint)list.IdxBuffer.Size;
-		}
-
-		_data = data;
-	}
-
-	public void Render(CommandBuffer cb)
-	{
-		cb.BindGraphicsPipeline(_pipeline);
-		var vtxUniform = cb.PushVertexShaderUniforms(new ImGuiVertUniform(_proj));
-
-		cb.BindVertexBuffers(_vertBuf);
-		cb.BindIndexBuffer(_idxBuf, IndexElementSize.Sixteen);
-
-		uint vtxOffset = 0;
-		uint idxOffset = 0;
-
-		for (var j = 0; j < _data.CmdListsCount; j++)
-		{
-			var list = _data.CmdListsRange[j];
-
-			for (var i = 0; i < list.CmdBuffer.Size; i++)
-			{
-				var cmd = list.CmdBuffer[i];
-
-				cb.BindFragmentSamplers(new TextureSamplerBinding(Lookup(cmd.TextureId), _sampler));
-				cb.SetScissor(new Rect((int) cmd.ClipRect.X, (int) cmd.ClipRect.Y, (int) (cmd.ClipRect.Z - cmd.ClipRect.X), (int) (cmd.ClipRect.W - cmd.ClipRect.Y)));
-
-				cb.DrawIndexedPrimitives(cmd.VtxOffset + vtxOffset, cmd.IdxOffset + idxOffset, cmd.ElemCount / 3, vtxUniform, 0);
-			}
-
-			vtxOffset += (uint)list.VtxBuffer.Size;
-			idxOffset += (uint)list.IdxBuffer.Size;
-		}
-	}
-
-	public IntPtr BindTexture(Texture texture)
-	{
-		_textures.TryAdd(texture.Handle, texture);
-		return texture.Handle;
-	}
-
-	public void UnbindTexture(Texture texture)
-	{
-		_textures.Remove(texture.Handle);
-	}
-
-	private Texture Lookup(IntPtr handle)
-	{
-		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : _textures[handle];
-	}
-
-	public void Resize(Window window)
-	{
-		_proj = Matrix4x4.CreateOrthographicOffCenter(0, window.Width, window.Height, 0, -1.0f, 1.0f);
-
-		var io = ImGui.GetIO();
-		io.DisplaySize = new System.Numerics.Vector2(window.Width, window.Height);
-	}
-
-	private readonly bool[] _pressed;
-
-	private bool _left = false;
-	private bool _mid = false;
-	private bool _right = false;
-
-	public void NewFrame(Inputs inputs)
-	{
-		var io = ImGui.GetIO();
-		
-		io.AddMousePosEvent(inputs.Mouse.X, inputs.Mouse.Y);
-		io.AddMouseWheelEvent(0, Math.Clamp(inputs.Mouse.Wheel, -1, 1));
+		io.AddMouseWheelEvent(0, inputs.Mouse.Wheel);
 
 		var left = inputs.Mouse.LeftButton.IsDown;
 		var mid = inputs.Mouse.MiddleButton.IsDown;
@@ -276,6 +162,204 @@ public class ImGuiRenderer
 			io.AddKeyEvent(ConvertKey(key), pressed);
 			_pressed[(int) key] = pressed;
 		}
+	}
+
+	/// <summary>
+	/// Sets up a new ImGui frame.
+	/// </summary>
+	/// <remarks>
+	/// Call during <see cref="Game.Update"/>.
+	/// </remarks>
+	public void NewFrameUpdate()
+	{
+		NewFrame(_curMouseX, _curMouseY);
+	}
+
+	/// <summary>
+	/// Sets up a new ImGui frame.
+	/// </summary>
+	/// <remarks>
+	/// Call during <see cref="Game.Draw"/>.
+	/// </remarks>
+	/// <param name="alpha">Alpha value passed into Game.</param>
+	public void NewFrameDraw(double alpha)
+	{
+		var mouseX = _curMouseX * alpha + _oldMouseX * (1.0 - alpha);
+		var mouseY = _curMouseY * alpha + _oldMouseY * (1.0 - alpha);
+		
+		NewFrame((float) mouseX, (float) mouseY);
+	}
+	
+	/// <summary>
+	/// Builds the vertex and index buffers used for ImGui rendering.
+	/// </summary>
+	/// <remarks>
+	/// Call after <see cref="ImGui.Render"/> and before <see cref="Render"/>.
+	/// Must not be called during a render pass.
+	/// </remarks>
+	/// <param name="data">ImGui draw data from <see cref="ImGui.GetDrawData"/></param>
+	/// <param name="gd">Graphics device</param>
+	/// <param name="cb">Command buffer, must not have active render pass</param>
+	public unsafe void BuildBuffers(ImDrawDataPtr data, GraphicsDevice gd, CommandBuffer cb)
+	{
+		if (data.TotalVtxCount > _vertBuf.Size / sizeof(ImGuiVert))
+		{
+			_vertBuf.Dispose();
+			_vertBuf = Buffer.Create<ImGuiVert>(gd, BufferUsageFlags.Vertex, (uint) data.TotalVtxCount);
+		}
+
+		if (data.TotalIdxCount > _idxBuf.Size / sizeof(ushort))
+		{
+			_idxBuf.Dispose();
+			_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, (uint) data.TotalIdxCount);
+		}
+		
+		uint vtxOffset = 0;
+		uint idxOffset = 0;
+
+		for (var i = 0; i < data.CmdListsCount; i++)
+		{
+			var list = data.CmdListsRange[i];
+
+			cb.SetBufferData<ImGuiVert>(_vertBuf, list.VtxBuffer.Data, vtxOffset, (uint)list.VtxBuffer.Size);
+			cb.SetBufferData<ushort>(_idxBuf, list.IdxBuffer.Data, idxOffset, (uint)list.IdxBuffer.Size);
+
+			vtxOffset += (uint)list.VtxBuffer.Size;
+			idxOffset += (uint)list.IdxBuffer.Size;
+		}
+
+		_data = data;
+	}
+	
+	/// <summary>
+	/// Renders the Dear ImGui windows.
+	/// </summary>
+	/// <remarks>
+	/// Call after <see cref="BuildBuffers"/>, inside of a render pass.
+	/// </remarks>
+	/// <param name="cb">Command buffer, must have an active render pass</param>
+	public void Render(CommandBuffer cb)
+	{
+		cb.BindGraphicsPipeline(_pipeline);
+		var vtxUniform = cb.PushVertexShaderUniforms(new ImGuiVertUniform(_proj));
+
+		cb.BindVertexBuffers(_vertBuf);
+		cb.BindIndexBuffer(_idxBuf, IndexElementSize.Sixteen);
+
+		uint vtxOffset = 0;
+		uint idxOffset = 0;
+
+		for (var j = 0; j < _data.CmdListsCount; j++)
+		{
+			var list = _data.CmdListsRange[j];
+
+			for (var i = 0; i < list.CmdBuffer.Size; i++)
+			{
+				var cmd = list.CmdBuffer[i];
+
+				cb.BindFragmentSamplers(new TextureSamplerBinding(Lookup(cmd.TextureId), _sampler));
+				cb.SetScissor(new Rect((int) cmd.ClipRect.X, (int) cmd.ClipRect.Y, (int) (cmd.ClipRect.Z - cmd.ClipRect.X), (int) (cmd.ClipRect.W - cmd.ClipRect.Y)));
+
+				cb.DrawIndexedPrimitives(cmd.VtxOffset + vtxOffset, cmd.IdxOffset + idxOffset, cmd.ElemCount / 3, vtxUniform, 0);
+			}
+
+			vtxOffset += (uint)list.VtxBuffer.Size;
+			idxOffset += (uint)list.IdxBuffer.Size;
+		}
+	}
+	
+	/// <summary>
+	/// (Re)uploads the inbuilt ImGui texture.
+	/// </summary>
+	/// <remarks>
+	/// Call after changing font settings.
+	/// </remarks>
+	/// <param name="gd">Graphics device</param>
+	/// <param name="cb">Command buffer, must not have active render pass</param>
+	public void UploadInbuiltTexture(GraphicsDevice gd, CommandBuffer cb)
+	{
+		var io = ImGui.GetIO();
+
+		io.Fonts.GetTexDataAsRGBA32(out IntPtr pixelPtr, out var width, out var height, out var bpp);
+		
+		_inbuiltTexture?.Dispose();
+		_inbuiltTexture = Texture.CreateTexture2D(gd, (uint)width, (uint)height, TextureFormat.R8G8B8A8, TextureUsageFlags.Sampler);
+
+		cb.SetTextureData(_inbuiltTexture, pixelPtr, (uint)(width * height * bpp));
+
+		io.Fonts.SetTexID(_inbuiltTexture.Handle);
+	}
+	
+	/// <summary>
+	/// Binds a texture to use in the renderer.
+	/// </summary>
+	/// <param name="texture">Texture</param>
+	/// <returns>Texture handle to pass into ImGui</returns>
+	public IntPtr BindTexture(Texture texture)
+	{
+		_textures.TryAdd(texture.Handle, texture);
+		return texture.Handle;
+	}
+	
+	/// <summary>
+	/// Unbinds a texture from the renderer.
+	/// </summary>
+	/// <param name="texture">Texture</param>
+	public void UnbindTexture(Texture texture)
+	{
+		_textures.Remove(texture.Handle);
+	}
+	
+	/// <summary>
+	/// Resizes ImGui viewport to window size.
+	/// </summary>
+	/// <param name="window">Main window of the application</param>
+	public void Resize(Window window)
+	{
+		_proj = Matrix4x4.CreateOrthographicOffCenter(0, window.Width, window.Height, 0, -1.0f, 1.0f);
+
+		var io = ImGui.GetIO();
+		io.DisplaySize = new System.Numerics.Vector2(window.Width, window.Height);
+	}
+
+	private void BuildPipeline(GraphicsDevice gd, Window window)
+	{
+		var gpci = new GraphicsPipelineCreateInfo
+		{
+			AttachmentInfo = new GraphicsPipelineAttachmentInfo(
+				new ColorAttachmentDescription(window.SwapchainFormat, ColorAttachmentBlendState.NonPremultiplied)
+			),
+			DepthStencilState = DepthStencilState.Disable,
+			MultisampleState = MultisampleState.None,
+			PrimitiveType = PrimitiveType.TriangleList,
+			RasterizerState = RasterizerState.CW_CullNone,
+			VertexInputState = new VertexInputState
+			{
+				VertexBindings = new[] { VertexBinding.Create<ImGuiVert>() },
+				VertexAttributes = new[]
+				{
+					VertexAttribute.Create<ImGuiVert>("Position", 0),
+					VertexAttribute.Create<ImGuiVert>("Uv", 1),
+					VertexAttribute.Create<ImGuiVert>("Col", 2),
+				},
+			},
+			VertexShaderInfo = GraphicsShaderInfo.Create<ImGuiVertUniform>(_vertShader, "main", 0),
+			FragmentShaderInfo = GraphicsShaderInfo.Create(_fragShader, "main", 1),
+		};
+
+		_pipeline = new GraphicsPipeline(gd, gpci);
+	}
+
+	private Texture Lookup(IntPtr handle)
+	{
+		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : _textures[handle];
+	}
+
+	private void NewFrame(float mouseX, float mouseY)
+	{
+		var io = ImGui.GetIO();
+		
+		io.AddMousePosEvent(mouseX, mouseY);
 	}
 
 	private static void TextInput(char c)
