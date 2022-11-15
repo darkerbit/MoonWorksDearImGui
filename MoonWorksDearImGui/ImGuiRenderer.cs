@@ -77,6 +77,15 @@ public class ImGuiRenderer
 
 	private int _oldMouseX, _oldMouseY;
 	private int _curMouseX, _curMouseY;
+	
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+	private delegate string GetClipboardDelegate(IntPtr userData);
+	
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+	private delegate void SetClipboardDelegate(IntPtr userData, string text);
+
+	private static GetClipboardDelegate _getClipboard = GetClipboard;
+	private static SetClipboardDelegate _setClipboard = SetClipboard;
 
 	public ImGuiRenderer(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
@@ -99,6 +108,9 @@ public class ImGuiRenderer
 		_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, 1024 * 6);
 
 		var io = ImGui.GetIO();
+		io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_getClipboard);
+		io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_setClipboard);
+		
 		io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 		io.Fonts.AddFontDefault();
 		UploadInbuiltTexture(gd, cb);
@@ -162,7 +174,7 @@ public class ImGuiRenderer
 				inputs.Keyboard.IsDown(KeyCode.LeftAlt) || inputs.Keyboard.IsDown(KeyCode.RightAlt));
 			io.AddKeyEvent(ImGuiKey.ModSuper,
 				inputs.Keyboard.IsDown(KeyCode.LeftMeta) || inputs.Keyboard.IsDown(KeyCode.RightMeta));
-
+			
 			io.AddKeyEvent(_keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
 			_pressed[(int)key] = pressed;
 		}
@@ -367,6 +379,16 @@ public class ImGuiRenderer
 		var io = ImGui.GetIO();
 
 		io.AddMousePosEvent(mouseX, mouseY);
+	}
+
+	private static string GetClipboard(IntPtr userData)
+	{
+		return SDL.SDL_GetClipboardText();
+	}
+
+	private static void SetClipboard(IntPtr userData, string text)
+	{
+		SDL.SDL_SetClipboardText(text);
 	}
 
 	private static void TextInput(char c)
