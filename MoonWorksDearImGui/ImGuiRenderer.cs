@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using MoonWorks;
@@ -77,15 +78,17 @@ public class ImGuiRenderer
 
 	private int _oldMouseX, _oldMouseY;
 	private int _curMouseX, _curMouseY;
-	
+
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate string GetClipboardDelegate(IntPtr userData);
-	
+
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void SetClipboardDelegate(IntPtr userData, string text);
 
 	private static GetClipboardDelegate _getClipboard = GetClipboard;
 	private static SetClipboardDelegate _setClipboard = SetClipboard;
+
+	private Stopwatch _drawTimer = new Stopwatch();
 
 	public ImGuiRenderer(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
@@ -110,7 +113,7 @@ public class ImGuiRenderer
 		var io = ImGui.GetIO();
 		io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_getClipboard);
 		io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_setClipboard);
-		
+
 		io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 		io.Fonts.AddFontDefault();
 		UploadInbuiltTexture(gd, cb);
@@ -174,7 +177,7 @@ public class ImGuiRenderer
 				inputs.Keyboard.IsDown(KeyCode.LeftAlt) || inputs.Keyboard.IsDown(KeyCode.RightAlt));
 			io.AddKeyEvent(ImGuiKey.ModSuper,
 				inputs.Keyboard.IsDown(KeyCode.LeftMeta) || inputs.Keyboard.IsDown(KeyCode.RightMeta));
-			
+
 			io.AddKeyEvent(_keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
 			_pressed[(int)key] = pressed;
 		}
@@ -186,9 +189,9 @@ public class ImGuiRenderer
 	/// <remarks>
 	/// Call during <see cref="Game.Update"/>.
 	/// </remarks>
-	public void NewFrameUpdate()
+	public void NewFrameUpdate(TimeSpan delta)
 	{
-		NewFrame(_curMouseX, _curMouseY);
+		NewFrame(_curMouseX, _curMouseY, (float)delta.TotalMilliseconds / 1000.0f);
 	}
 
 	/// <summary>
@@ -200,10 +203,14 @@ public class ImGuiRenderer
 	/// <param name="alpha">Alpha value passed into Game.</param>
 	public void NewFrameDraw(double alpha)
 	{
+		_drawTimer.Stop();
+		
 		var mouseX = _curMouseX * alpha + _oldMouseX * (1.0 - alpha);
 		var mouseY = _curMouseY * alpha + _oldMouseY * (1.0 - alpha);
 
-		NewFrame((float)mouseX, (float)mouseY);
+		NewFrame((float)mouseX, (float)mouseY, _drawTimer.ElapsedMilliseconds / 1000.0f);
+		
+		_drawTimer.Restart();
 	}
 
 	/// <summary>
@@ -374,10 +381,11 @@ public class ImGuiRenderer
 		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : _textures[handle];
 	}
 
-	private void NewFrame(float mouseX, float mouseY)
+	private void NewFrame(float mouseX, float mouseY, float delta)
 	{
 		var io = ImGui.GetIO();
 
+		io.DeltaTime = delta;
 		io.AddMousePosEvent(mouseX, mouseY);
 	}
 
