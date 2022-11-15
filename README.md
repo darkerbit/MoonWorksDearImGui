@@ -10,9 +10,8 @@ Copy [ImGuiRenderer.cs](MoonWorksDearImGui/ImGuiRenderer.cs) to your project, an
 
 See [ImGuiGame.cs](MoonWorksDearImGui/ImGuiGame.cs) for an example of usage, and `ImGuiRenderer` has doc comments.
 
-## How build?
+## How do I run the example project?
 
-1. `./setup.sh`
-2. `dotnet run --project MoonWorksDearImGui`
-
-Should also work on Windows, though you will need to do the things the `setup.sh` does manually.
+1. `git clone --recursive https://github.com/darkerbit/MoonWorksDearImGui.git`
+2. `./setup.sh` (run in Git Bash on Windows)
+3. `dotnet run --project MoonWorksDearImGui`
