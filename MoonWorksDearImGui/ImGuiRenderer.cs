@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ImGuiNET;
 using MoonWorks;
@@ -76,19 +75,14 @@ public class ImGuiRenderer
 
 	private bool _left, _mid, _right;
 
-	private int _oldMouseX, _oldMouseY;
-	private int _curMouseX, _curMouseY;
-
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate string GetClipboardDelegate(IntPtr userData);
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void SetClipboardDelegate(IntPtr userData, string text);
 
-	private static GetClipboardDelegate _getClipboard = GetClipboard;
-	private static SetClipboardDelegate _setClipboard = SetClipboard;
-
-	private Stopwatch _drawTimer = new Stopwatch();
+	private static readonly GetClipboardDelegate _getClipboard = GetClipboard;
+	private static readonly SetClipboardDelegate _setClipboard = SetClipboard;
 
 	public ImGuiRenderer(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
@@ -122,22 +116,20 @@ public class ImGuiRenderer
 	}
 
 	/// <summary>
-	/// Updates input state.
+	/// Starts a new ImGui frame and updates I/O.
 	/// </summary>
 	/// <remarks>
 	/// Call inside <see cref="Game.Update"/>.
 	/// </remarks>
 	/// <param name="inputs">Current input state</param>
-	public void Update(Inputs inputs)
+	/// <param name="delta">Delta time</param>
+	public void NewFrame(Inputs inputs, TimeSpan delta)
 	{
-		_oldMouseX = _curMouseX;
-		_oldMouseY = _curMouseY;
-
-		_curMouseX = inputs.Mouse.X;
-		_curMouseY = inputs.Mouse.Y;
-
 		var io = ImGui.GetIO();
 
+		io.DeltaTime = (float) delta.TotalSeconds;
+		
+		io.AddMousePosEvent(inputs.Mouse.X, inputs.Mouse.Y);
 		io.AddMouseWheelEvent(0, inputs.Mouse.Wheel);
 
 		var left = inputs.Mouse.LeftButton.IsDown;
@@ -181,36 +173,6 @@ public class ImGuiRenderer
 			io.AddKeyEvent(_keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
 			_pressed[(int)key] = pressed;
 		}
-	}
-
-	/// <summary>
-	/// Sets up a new ImGui frame.
-	/// </summary>
-	/// <remarks>
-	/// Call during <see cref="Game.Update"/>.
-	/// </remarks>
-	public void NewFrameUpdate(TimeSpan delta)
-	{
-		NewFrame(_curMouseX, _curMouseY, (float)delta.TotalMilliseconds / 1000.0f);
-	}
-
-	/// <summary>
-	/// Sets up a new ImGui frame.
-	/// </summary>
-	/// <remarks>
-	/// Call during <see cref="Game.Draw"/>.
-	/// </remarks>
-	/// <param name="alpha">Alpha value passed into Game.</param>
-	public void NewFrameDraw(double alpha)
-	{
-		_drawTimer.Stop();
-		
-		var mouseX = _curMouseX * alpha + _oldMouseX * (1.0 - alpha);
-		var mouseY = _curMouseY * alpha + _oldMouseY * (1.0 - alpha);
-
-		NewFrame((float)mouseX, (float)mouseY, _drawTimer.ElapsedMilliseconds / 1000.0f);
-		
-		_drawTimer.Restart();
 	}
 
 	/// <summary>
@@ -379,14 +341,6 @@ public class ImGuiRenderer
 	private Texture Lookup(IntPtr handle)
 	{
 		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : _textures[handle];
-	}
-
-	private void NewFrame(float mouseX, float mouseY, float delta)
-	{
-		var io = ImGui.GetIO();
-
-		io.DeltaTime = delta;
-		io.AddMousePosEvent(mouseX, mouseY);
 	}
 
 	private static string GetClipboard(IntPtr userData)

@@ -44,26 +44,26 @@ public class ImGuiGame : Game
 	
 	protected override void Update(TimeSpan delta)
 	{
-		_imRenderer.Update(Inputs);
-	}
-
-	protected override void Draw(double alpha)
-	{
-		_imRenderer.NewFrameDraw(alpha);
+		_imRenderer.NewFrame(Inputs, delta);
 		ImGui.NewFrame();
-		
-		ImGui.ShowDemoWindow();
 
-		if (ImGui.Begin("Example texture"))
+		if (ImGui.Begin("Texture demo window"))
 		{
 			ImGui.Image(_imRenderer.BindTexture(_texture), new Vector2(500, 400));
 		}
 		ImGui.End();
 		
-		ImGui.Render();
+		ImGui.ShowDemoWindow();
 		
+		ImGui.EndFrame();
+	}
+
+	protected override void Draw(double alpha)
+	{
 		var cb = GraphicsDevice.AcquireCommandBuffer();
 		var swapchainTexture = cb.AcquireSwapchainTexture(MainWindow);
+		
+		ImGui.Render();
 		
 		_imRenderer.BuildBuffers(ImGui.GetDrawData(), GraphicsDevice, cb);
 		
