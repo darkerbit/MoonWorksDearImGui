@@ -132,6 +132,18 @@ public class ImGuiMoonWorksBackend
 		io.AddMousePosEvent(inputs.Mouse.X, inputs.Mouse.Y);
 		io.AddMouseWheelEvent(0, inputs.Mouse.Wheel);
 
+		if (inputs.AnyPressed)
+		{
+			io.AddKeyEvent(ImGuiKey.ModCtrl,
+				inputs.Keyboard.IsDown(KeyCode.LeftControl) || inputs.Keyboard.IsDown(KeyCode.RightControl));
+			io.AddKeyEvent(ImGuiKey.ModShift,
+				inputs.Keyboard.IsDown(KeyCode.LeftShift) || inputs.Keyboard.IsDown(KeyCode.RightShift));
+			io.AddKeyEvent(ImGuiKey.ModAlt,
+				inputs.Keyboard.IsDown(KeyCode.LeftAlt) || inputs.Keyboard.IsDown(KeyCode.RightAlt));
+			io.AddKeyEvent(ImGuiKey.ModSuper,
+				inputs.Keyboard.IsDown(KeyCode.LeftMeta) || inputs.Keyboard.IsDown(KeyCode.RightMeta));
+		}
+
 		var left = inputs.Mouse.LeftButton.IsDown;
 		var mid = inputs.Mouse.MiddleButton.IsDown;
 		var right = inputs.Mouse.RightButton.IsDown;
@@ -160,17 +172,9 @@ public class ImGuiMoonWorksBackend
 
 			if (pressed == _pressed[(int)key])
 				continue;
-
-			io.AddKeyEvent(ImGuiKey.ModCtrl,
-				inputs.Keyboard.IsDown(KeyCode.LeftControl) || inputs.Keyboard.IsDown(KeyCode.RightControl));
-			io.AddKeyEvent(ImGuiKey.ModShift,
-				inputs.Keyboard.IsDown(KeyCode.LeftShift) || inputs.Keyboard.IsDown(KeyCode.RightShift));
-			io.AddKeyEvent(ImGuiKey.ModAlt,
-				inputs.Keyboard.IsDown(KeyCode.LeftAlt) || inputs.Keyboard.IsDown(KeyCode.RightAlt));
-			io.AddKeyEvent(ImGuiKey.ModSuper,
-				inputs.Keyboard.IsDown(KeyCode.LeftMeta) || inputs.Keyboard.IsDown(KeyCode.RightMeta));
-
+			
 			io.AddKeyEvent(_keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
+			io.SetKeyEventNativeData(_keys.GetValueOrDefault(key, ImGuiKey.None), (int) key, (int) key);
 			_pressed[(int)key] = pressed;
 		}
 	}
