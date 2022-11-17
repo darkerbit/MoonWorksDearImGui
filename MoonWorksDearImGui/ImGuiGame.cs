@@ -29,7 +29,7 @@ namespace MoonWorksDearImGui;
 
 public class ImGuiGame : Game
 {
-	private readonly ImGuiRenderer _imRenderer;
+	private readonly ImGuiMoonWorksBackend _imMoonWorksBackend;
 	private readonly Texture _texture;
 	
 	public ImGuiGame(WindowCreateInfo windowCreateInfo, FrameLimiterSettings frameLimiterSettings,
@@ -37,19 +37,19 @@ public class ImGuiGame : Game
 		debugMode)
 	{
 		var cb = GraphicsDevice.AcquireCommandBuffer();
-		_imRenderer = new ImGuiRenderer(GraphicsDevice, cb, MainWindow);
+		_imMoonWorksBackend = new ImGuiMoonWorksBackend(GraphicsDevice, cb, MainWindow);
 		_texture = Texture.LoadPNG(GraphicsDevice, cb, "Content/Example.png");
 		GraphicsDevice.Submit(cb);
 	}
 	
 	protected override void Update(TimeSpan delta)
 	{
-		_imRenderer.NewFrame(Inputs, delta);
+		_imMoonWorksBackend.NewFrame(Inputs, delta);
 		ImGui.NewFrame();
 
 		if (ImGui.Begin("Texture demo window"))
 		{
-			ImGui.Image(_imRenderer.BindTexture(_texture), new Vector2(500, 400));
+			ImGui.Image(_imMoonWorksBackend.BindTexture(_texture), new Vector2(500, 400));
 		}
 		ImGui.End();
 		
@@ -65,10 +65,10 @@ public class ImGuiGame : Game
 		
 		ImGui.Render();
 		
-		_imRenderer.BuildBuffers(ImGui.GetDrawData(), GraphicsDevice, cb);
+		_imMoonWorksBackend.BuildBuffers(ImGui.GetDrawData(), GraphicsDevice, cb);
 		
 		cb.BeginRenderPass(new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue));
-		_imRenderer.Render(cb);
+		_imMoonWorksBackend.Render(cb);
 		cb.EndRenderPass();
 		
 		GraphicsDevice.Submit(cb);

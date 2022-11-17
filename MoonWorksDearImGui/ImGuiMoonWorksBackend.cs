@@ -32,7 +32,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace MoonWorksDearImGui;
 
-public class ImGuiRenderer
+public class ImGuiMoonWorksBackend
 {
 	[StructLayout(LayoutKind.Sequential)]
 	private struct ImGuiVertUniform
@@ -84,7 +84,7 @@ public class ImGuiRenderer
 	private static readonly GetClipboardDelegate _getClipboard = GetClipboard;
 	private static readonly SetClipboardDelegate _setClipboard = SetClipboard;
 
-	public ImGuiRenderer(GraphicsDevice gd, CommandBuffer cb, Window window)
+	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
 		SDL.SDL_GetKeyboardState(out var numKeys);
 		_pressed = new bool[numKeys];
