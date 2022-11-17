@@ -69,7 +69,7 @@ public class ImGuiMoonWorksBackend
 
 	private Matrix4x4 _proj;
 
-	private readonly Dictionary<IntPtr, Texture> _textures = new();
+	private static readonly Dictionary<IntPtr, Texture> Textures = new();
 
 	private readonly bool[] _pressed;
 
@@ -81,8 +81,8 @@ public class ImGuiMoonWorksBackend
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate void SetClipboardDelegate(IntPtr userData, string text);
 
-	private static readonly GetClipboardDelegate _getClipboard = GetClipboard;
-	private static readonly SetClipboardDelegate _setClipboard = SetClipboard;
+	private static readonly GetClipboardDelegate GetClipboardFn = GetClipboard;
+	private static readonly SetClipboardDelegate SetClipboardFn = SetClipboard;
 
 	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, Window window)
 	{
@@ -105,8 +105,8 @@ public class ImGuiMoonWorksBackend
 		_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, 1024 * 6);
 
 		var io = ImGui.GetIO();
-		io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_getClipboard);
-		io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(_setClipboard);
+		io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(GetClipboardFn);
+		io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(SetClipboardFn);
 
 		io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 		io.Fonts.AddFontDefault();
@@ -283,9 +283,9 @@ public class ImGuiMoonWorksBackend
 	/// </summary>
 	/// <param name="texture">Texture</param>
 	/// <returns>Texture handle to pass into ImGui</returns>
-	public IntPtr BindTexture(Texture texture)
+	public static IntPtr BindTexture(Texture texture)
 	{
-		_textures.TryAdd(texture.Handle, texture);
+		Textures.TryAdd(texture.Handle, texture);
 		return texture.Handle;
 	}
 
@@ -293,9 +293,9 @@ public class ImGuiMoonWorksBackend
 	/// Unbinds a texture from the renderer.
 	/// </summary>
 	/// <param name="texture">Texture</param>
-	public void UnbindTexture(Texture texture)
+	public static void UnbindTexture(Texture texture)
 	{
-		_textures.Remove(texture.Handle);
+		Textures.Remove(texture.Handle);
 	}
 
 	/// <summary>
@@ -340,7 +340,7 @@ public class ImGuiMoonWorksBackend
 
 	private Texture Lookup(IntPtr handle)
 	{
-		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : _textures[handle];
+		return handle == _inbuiltTexture!.Handle ? _inbuiltTexture! : Textures[handle];
 	}
 
 	private static string GetClipboard(IntPtr userData)
