@@ -84,7 +84,12 @@ public class ImGuiMoonWorksBackend
 	private static readonly GetClipboardDelegate GetClipboardFn = GetClipboard;
 	private static readonly SetClipboardDelegate SetClipboardFn = SetClipboard;
 
-	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, Window window)
+	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, Window window) : this(gd, cb,
+		window.SwapchainFormat, new Vector2(window.Width, window.Height))
+	{
+	}
+
+	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, TextureFormat format, Vector2 size)
 	{
 		SDL.SDL_GetKeyboardState(out var numKeys);
 		_pressed = new bool[numKeys];
@@ -94,7 +99,7 @@ public class ImGuiMoonWorksBackend
 		var ctx = ImGui.CreateContext();
 		ImGui.SetCurrentContext(ctx);
 
-		Resize(window);
+		Resize(size);
 
 		_vertShader = new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.vert.spv");
 		_fragShader = new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.frag.spv");
@@ -112,7 +117,7 @@ public class ImGuiMoonWorksBackend
 		io.Fonts.AddFontDefault();
 		UploadInbuiltTexture(gd, cb);
 
-		BuildPipeline(gd, window);
+		BuildPipeline(gd, format);
 	}
 
 	/// <summary>
@@ -127,8 +132,8 @@ public class ImGuiMoonWorksBackend
 	{
 		var io = ImGui.GetIO();
 
-		io.DeltaTime = (float) delta.TotalSeconds;
-		
+		io.DeltaTime = (float)delta.TotalSeconds;
+
 		io.AddMousePosEvent(inputs.Mouse.X, inputs.Mouse.Y);
 		io.AddMouseWheelEvent(0, inputs.Mouse.Wheel);
 
@@ -172,9 +177,9 @@ public class ImGuiMoonWorksBackend
 
 			if (pressed == _pressed[(int)key])
 				continue;
-			
+
 			io.AddKeyEvent(_keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
-			io.SetKeyEventNativeData(_keys.GetValueOrDefault(key, ImGuiKey.None), (int) key, (int) key);
+			io.SetKeyEventNativeData(_keys.GetValueOrDefault(key, ImGuiKey.None), (int)key, (int)key);
 			_pressed[(int)key] = pressed;
 		}
 	}
@@ -303,23 +308,32 @@ public class ImGuiMoonWorksBackend
 	}
 
 	/// <summary>
-	/// Resizes ImGui viewport to window size.
+	/// Resizes ImGui viewport to the size of the given window.
 	/// </summary>
-	/// <param name="window">Main window of the application</param>
+	/// <param name="window">Window to resize to</param>
 	public void Resize(Window window)
 	{
-		_proj = Matrix4x4.CreateOrthographicOffCenter(0, window.Width, window.Height, 0, -1.0f, 1.0f);
-
-		var io = ImGui.GetIO();
-		io.DisplaySize = new System.Numerics.Vector2(window.Width, window.Height);
+		Resize(new Vector2(window.Width, window.Height));
 	}
 
-	private void BuildPipeline(GraphicsDevice gd, Window window)
+	/// <summary>
+	/// Resizes ImGui viewport to a given size.
+	/// </summary>
+	/// <param name="size">Size of the viewport</param>
+	public void Resize(Vector2 size)
+	{
+		_proj = Matrix4x4.CreateOrthographicOffCenter(0, size.X, size.Y, 0, -1.0f, 1.0f);
+
+		var io = ImGui.GetIO();
+		io.DisplaySize = new System.Numerics.Vector2(size.X, size.Y);
+	}
+
+	private void BuildPipeline(GraphicsDevice gd, TextureFormat format)
 	{
 		var gpci = new GraphicsPipelineCreateInfo
 		{
 			AttachmentInfo = new GraphicsPipelineAttachmentInfo(
-				new ColorAttachmentDescription(window.SwapchainFormat, ColorAttachmentBlendState.NonPremultiplied)
+				new ColorAttachmentDescription(format, ColorAttachmentBlendState.NonPremultiplied)
 			),
 			DepthStencilState = DepthStencilState.Disable,
 			MultisampleState = MultisampleState.None,
