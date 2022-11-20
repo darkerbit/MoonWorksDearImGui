@@ -324,7 +324,7 @@ public class ImGuiMoonWorksBackend
 			DepthStencilState = DepthStencilState.Disable,
 			MultisampleState = MultisampleState.None,
 			PrimitiveType = PrimitiveType.TriangleList,
-			RasterizerState = RasterizerState.CW_CullNone,
+			RasterizerState = RasterizerState.CCW_CullNone,
 			VertexInputState = new VertexInputState
 			{
 				VertexBindings = new[] { VertexBinding.Create<ImGuiVert>() },
