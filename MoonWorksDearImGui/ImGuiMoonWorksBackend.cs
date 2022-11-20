@@ -53,6 +53,8 @@ public class ImGuiMoonWorksBackend
 		public Color Col;
 	}
 
+	private readonly GraphicsDevice _gd;
+
 	private readonly ShaderModule _vertShader;
 	private readonly ShaderModule _fragShader;
 
@@ -91,6 +93,8 @@ public class ImGuiMoonWorksBackend
 
 	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, TextureFormat format, Vector2 size)
 	{
+		_gd = gd;
+		
 		SDL.SDL_GetKeyboardState(out var numKeys);
 		_pressed = new bool[numKeys];
 
@@ -115,7 +119,7 @@ public class ImGuiMoonWorksBackend
 
 		io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 		io.Fonts.AddFontDefault();
-		UploadInbuiltTexture(gd, cb);
+		UploadInbuiltTexture(cb);
 
 		BuildPipeline(gd, format);
 	}
@@ -194,18 +198,18 @@ public class ImGuiMoonWorksBackend
 	/// <param name="data">ImGui draw data from <see cref="ImGui.GetDrawData"/></param>
 	/// <param name="gd">Graphics device</param>
 	/// <param name="cb">Command buffer, must not have active render pass</param>
-	public unsafe void BuildBuffers(ImDrawDataPtr data, GraphicsDevice gd, CommandBuffer cb)
+	public unsafe void BuildBuffers(ImDrawDataPtr data, CommandBuffer cb)
 	{
 		if (data.TotalVtxCount > _vertBuf.Size / sizeof(ImGuiVert))
 		{
 			_vertBuf.Dispose();
-			_vertBuf = Buffer.Create<ImGuiVert>(gd, BufferUsageFlags.Vertex, (uint)data.TotalVtxCount);
+			_vertBuf = Buffer.Create<ImGuiVert>(_gd, BufferUsageFlags.Vertex, (uint)data.TotalVtxCount);
 		}
 
 		if (data.TotalIdxCount > _idxBuf.Size / sizeof(ushort))
 		{
 			_idxBuf.Dispose();
-			_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, (uint)data.TotalIdxCount);
+			_idxBuf = Buffer.Create<ushort>(_gd, BufferUsageFlags.Index, (uint)data.TotalIdxCount);
 		}
 
 		uint vtxOffset = 0;
@@ -272,14 +276,14 @@ public class ImGuiMoonWorksBackend
 	/// </remarks>
 	/// <param name="gd">Graphics device</param>
 	/// <param name="cb">Command buffer, must not have active render pass</param>
-	public void UploadInbuiltTexture(GraphicsDevice gd, CommandBuffer cb)
+	public void UploadInbuiltTexture(CommandBuffer cb)
 	{
 		var io = ImGui.GetIO();
 
 		io.Fonts.GetTexDataAsRGBA32(out IntPtr pixelPtr, out var width, out var height, out var bpp);
 
 		_inbuiltTexture?.Dispose();
-		_inbuiltTexture = Texture.CreateTexture2D(gd, (uint)width, (uint)height, TextureFormat.R8G8B8A8,
+		_inbuiltTexture = Texture.CreateTexture2D(_gd, (uint)width, (uint)height, TextureFormat.R8G8B8A8,
 			TextureUsageFlags.Sampler);
 
 		cb.SetTextureData(_inbuiltTexture, pixelPtr, (uint)(width * height * bpp));

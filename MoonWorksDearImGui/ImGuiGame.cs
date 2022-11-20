@@ -65,7 +65,7 @@ public class ImGuiGame : Game
 		
 		ImGui.Render();
 		
-		_imBackend.BuildBuffers(ImGui.GetDrawData(), GraphicsDevice, cb);
+		_imBackend.BuildBuffers(ImGui.GetDrawData(), cb);
 		
 		cb.BeginRenderPass(new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue));
 		_imBackend.Render(cb);
