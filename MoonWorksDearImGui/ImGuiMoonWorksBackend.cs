@@ -175,7 +175,7 @@ public class ImGuiMoonWorksBackend
 			_mid = mid;
 		}
 
-		foreach (KeyCode key in Enum.GetValues(typeof(KeyCode)))
+		foreach (var key in _keys.Keys)
 		{
 			var pressed = inputs.Keyboard.IsDown(key);
 
