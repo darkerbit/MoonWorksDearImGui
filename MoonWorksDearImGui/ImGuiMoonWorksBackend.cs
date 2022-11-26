@@ -94,7 +94,7 @@ public class ImGuiMoonWorksBackend
 	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, TextureFormat format, Vector2 size)
 	{
 		_gd = gd;
-		
+
 		SDL.SDL_GetKeyboardState(out var numKeys);
 		_pressed = new bool[numKeys];
 
@@ -175,15 +175,15 @@ public class ImGuiMoonWorksBackend
 			_mid = mid;
 		}
 
-		foreach (var key in _keys.Keys)
+		foreach (var key in Keys.Keys)
 		{
 			var pressed = inputs.Keyboard.IsDown(key);
 
 			if (pressed == _pressed[(int)key])
 				continue;
 
-			io.AddKeyEvent(_keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
-			io.SetKeyEventNativeData(_keys.GetValueOrDefault(key, ImGuiKey.None), (int)key, (int)key);
+			io.AddKeyEvent(Keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
+			io.SetKeyEventNativeData(Keys.GetValueOrDefault(key, ImGuiKey.None), (int)key, (int)key);
 			_pressed[(int)key] = pressed;
 		}
 	}
@@ -196,7 +196,6 @@ public class ImGuiMoonWorksBackend
 	/// Must not be called during a render pass.
 	/// </remarks>
 	/// <param name="data">ImGui draw data from <see cref="ImGui.GetDrawData"/></param>
-	/// <param name="gd">Graphics device</param>
 	/// <param name="cb">Command buffer, must not have active render pass</param>
 	public unsafe void BuildBuffers(ImDrawDataPtr data, CommandBuffer cb)
 	{
@@ -274,7 +273,6 @@ public class ImGuiMoonWorksBackend
 	/// <remarks>
 	/// Call after changing font settings.
 	/// </remarks>
-	/// <param name="gd">Graphics device</param>
 	/// <param name="cb">Command buffer, must not have active render pass</param>
 	public void UploadInbuiltTexture(CommandBuffer cb)
 	{
@@ -380,7 +378,7 @@ public class ImGuiMoonWorksBackend
 		ImGui.GetIO().AddInputCharacter(c);
 	}
 
-	private static Dictionary<KeyCode, ImGuiKey> _keys = new Dictionary<KeyCode, ImGuiKey>
+	private static readonly Dictionary<KeyCode, ImGuiKey> Keys = new Dictionary<KeyCode, ImGuiKey>
 	{
 		[KeyCode.Tab] = ImGuiKey.Tab,
 		[KeyCode.Left] = ImGuiKey.LeftArrow,
