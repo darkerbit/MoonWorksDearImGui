@@ -80,6 +80,12 @@ public class ImGuiMoonWorksBackend
 	{
 	}
 
+	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, Window window, ShaderModule vertShader,
+		ShaderModule fragShader) : this(gd, cb,
+		window.SwapchainFormat, new Vector2(window.Width, window.Height), vertShader, fragShader)
+	{
+	}
+
 	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, TextureFormat format, Vector2 size)
 		: this(gd, cb, format, size,
 			new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.vert.spv"),
