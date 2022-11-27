@@ -81,6 +81,15 @@ public class ImGuiMoonWorksBackend
 	}
 
 	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, TextureFormat format, Vector2 size)
+		: this(gd, cb, format, size,
+			new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.vert.spv"),
+			new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.frag.spv")
+		)
+	{
+	}
+
+	public ImGuiMoonWorksBackend(GraphicsDevice gd, CommandBuffer cb, TextureFormat format, Vector2 size,
+		ShaderModule vertShader, ShaderModule fragShader)
 	{
 		_gd = gd;
 
@@ -94,8 +103,8 @@ public class ImGuiMoonWorksBackend
 
 		Resize(size);
 
-		_vertShader = new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.vert.spv");
-		_fragShader = new ShaderModule(gd, "Content/Shaders/SPIR-V/ImGui.frag.spv");
+		_vertShader = vertShader;
+		_fragShader = fragShader;
 
 		_sampler = new Sampler(gd, SamplerCreateInfo.PointClamp);
 
