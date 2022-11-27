@@ -35,22 +35,11 @@ namespace MoonWorksDearImGui;
 public class ImGuiMoonWorksBackend
 {
 	[StructLayout(LayoutKind.Sequential)]
-	private struct ImGuiVertUniform
+	private readonly struct ImGuiVert
 	{
-		public Matrix4x4 Transform;
-
-		public ImGuiVertUniform(Matrix4x4 transform)
-		{
-			Transform = transform;
-		}
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	private struct ImGuiVert
-	{
-		public Vector2 Position;
-		public Vector2 Uv;
-		public Color Col;
+		public readonly Vector2 Position;
+		public readonly Vector2 Uv;
+		public readonly Color Col;
 	}
 
 	private readonly GraphicsDevice _gd;
@@ -238,7 +227,7 @@ public class ImGuiMoonWorksBackend
 	public void Render(CommandBuffer cb)
 	{
 		cb.BindGraphicsPipeline(_pipeline);
-		var vtxUniform = cb.PushVertexShaderUniforms(new ImGuiVertUniform(_proj));
+		var vtxUniform = cb.PushVertexShaderUniforms(_proj);
 
 		cb.BindVertexBuffers(_vertBuf);
 		cb.BindIndexBuffer(_idxBuf, IndexElementSize.Sixteen);
@@ -351,7 +340,7 @@ public class ImGuiMoonWorksBackend
 					VertexAttribute.Create<ImGuiVert>("Col", 2),
 				},
 			},
-			VertexShaderInfo = GraphicsShaderInfo.Create<ImGuiVertUniform>(_vertShader, "main", 0),
+			VertexShaderInfo = GraphicsShaderInfo.Create<Matrix4x4>(_vertShader, "main", 0),
 			FragmentShaderInfo = GraphicsShaderInfo.Create(_fragShader, "main", 1),
 		};
 
