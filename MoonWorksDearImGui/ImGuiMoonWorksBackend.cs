@@ -62,10 +62,6 @@ public class ImGuiMoonWorksBackend
 
 	private static readonly Dictionary<IntPtr, Texture> Textures = new();
 
-	private readonly bool[] _pressed;
-
-	private bool _left, _mid, _right;
-
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate string GetClipboardDelegate(IntPtr userData);
 
@@ -98,9 +94,6 @@ public class ImGuiMoonWorksBackend
 		ShaderModule vertShader, ShaderModule fragShader)
 	{
 		_gd = gd;
-
-		SDL.SDL_GetKeyboardState(out var numKeys);
-		_pressed = new bool[numKeys];
 
 		Inputs.TextInput += TextInput;
 
@@ -156,39 +149,22 @@ public class ImGuiMoonWorksBackend
 			io.AddKeyEvent(ImGuiKey.ModSuper,
 				inputs.Keyboard.IsDown(KeyCode.LeftMeta) || inputs.Keyboard.IsDown(KeyCode.RightMeta));
 		}
-
-		var left = inputs.Mouse.LeftButton.IsDown;
-		var mid = inputs.Mouse.MiddleButton.IsDown;
-		var right = inputs.Mouse.RightButton.IsDown;
-
-		if (left != _left)
-		{
-			io.AddMouseButtonEvent(0, left);
-			_left = left;
-		}
-
-		if (right != _right)
-		{
-			io.AddMouseButtonEvent(1, right);
-			_right = right;
-		}
-
-		if (mid != _mid)
-		{
-			io.AddMouseButtonEvent(2, mid);
-			_mid = mid;
-		}
+		
+		if (inputs.Mouse.LeftButton.IsPressed || inputs.Mouse.LeftButton.IsReleased)
+			io.AddMouseButtonEvent(0, inputs.Mouse.LeftButton.IsDown);
+		
+		if (inputs.Mouse.RightButton.IsPressed || inputs.Mouse.RightButton.IsReleased)
+			io.AddMouseButtonEvent(1, inputs.Mouse.RightButton.IsDown);
+		
+		if (inputs.Mouse.MiddleButton.IsPressed || inputs.Mouse.MiddleButton.IsReleased)
+			io.AddMouseButtonEvent(2, inputs.Mouse.MiddleButton.IsDown);
 
 		foreach (var key in Keys.Keys)
 		{
-			var pressed = inputs.Keyboard.IsDown(key);
+			if (!inputs.Keyboard.IsPressed(key) && !inputs.Keyboard.IsReleased(key)) continue;
 
-			if (pressed == _pressed[(int)key])
-				continue;
-
-			io.AddKeyEvent(Keys.GetValueOrDefault(key, ImGuiKey.None), pressed);
+			io.AddKeyEvent(Keys.GetValueOrDefault(key, ImGuiKey.None), inputs.Keyboard.IsDown(key));
 			io.SetKeyEventNativeData(Keys.GetValueOrDefault(key, ImGuiKey.None), (int)key, (int)key);
-			_pressed[(int)key] = pressed;
 		}
 	}
 
