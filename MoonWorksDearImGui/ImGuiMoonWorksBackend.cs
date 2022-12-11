@@ -149,13 +149,13 @@ public class ImGuiMoonWorksBackend
 			io.AddKeyEvent(ImGuiKey.ModSuper,
 				inputs.Keyboard.IsDown(KeyCode.LeftMeta) || inputs.Keyboard.IsDown(KeyCode.RightMeta));
 		}
-		
+
 		if (inputs.Mouse.LeftButton.IsPressed || inputs.Mouse.LeftButton.IsReleased)
 			io.AddMouseButtonEvent(0, inputs.Mouse.LeftButton.IsDown);
-		
+
 		if (inputs.Mouse.RightButton.IsPressed || inputs.Mouse.RightButton.IsReleased)
 			io.AddMouseButtonEvent(1, inputs.Mouse.RightButton.IsDown);
-		
+
 		if (inputs.Mouse.MiddleButton.IsPressed || inputs.Mouse.MiddleButton.IsReleased)
 			io.AddMouseButtonEvent(2, inputs.Mouse.MiddleButton.IsDown);
 
@@ -217,6 +217,8 @@ public class ImGuiMoonWorksBackend
 	/// <param name="cb">Command buffer, must have an active render pass</param>
 	public void Render(CommandBuffer cb)
 	{
+		var io = ImGui.GetIO();
+
 		cb.BindGraphicsPipeline(_pipeline);
 		var vtxUniform = cb.PushVertexShaderUniforms(_proj);
 
@@ -235,8 +237,14 @@ public class ImGuiMoonWorksBackend
 				var cmd = list.CmdBuffer[i];
 
 				cb.BindFragmentSamplers(new TextureSamplerBinding(Lookup(cmd.TextureId), _sampler));
-				cb.SetScissor(new Rect((int)cmd.ClipRect.X, (int)cmd.ClipRect.Y, (int)(cmd.ClipRect.Z - cmd.ClipRect.X),
-					(int)(cmd.ClipRect.W - cmd.ClipRect.Y)));
+				cb.SetScissor(
+					new Rect(
+						(int)Math.Clamp(cmd.ClipRect.X, 0, io.DisplaySize.X),
+						(int)Math.Clamp(cmd.ClipRect.Y, 0, io.DisplaySize.Y),
+						(int)Math.Clamp(cmd.ClipRect.Z - cmd.ClipRect.X, 0, io.DisplaySize.X),
+						(int)Math.Clamp(cmd.ClipRect.W - cmd.ClipRect.Y, 0, io.DisplaySize.Y)
+					)
+				);
 
 				cb.DrawIndexedPrimitives(cmd.VtxOffset + vtxOffset, cmd.IdxOffset + idxOffset, cmd.ElemCount / 3,
 					vtxUniform, 0);
