@@ -27,7 +27,7 @@ public static class Program
 {
 	public static void Main()
 	{
-		var wci = new WindowCreateInfo
+		WindowCreateInfo wci = new WindowCreateInfo
 		{
 			WindowTitle = "MoonWorks Dear ImGui",
 			WindowWidth = 1280,
@@ -38,13 +38,13 @@ public static class Program
 			SystemResizable = false,
 		};
 
-		var fls = new FrameLimiterSettings
+		FrameLimiterSettings fls = new FrameLimiterSettings
 		{
 			Cap = 0,
 			Mode = FrameLimiterMode.Uncapped,
 		};
 
-		var game = new ImGuiGame(wci, fls, 60, true);
+		ImGuiGame? game = new ImGuiGame(wci, fls, 60, true);
 		game.Run();
 	}
 }

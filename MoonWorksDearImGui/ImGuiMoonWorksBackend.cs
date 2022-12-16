@@ -60,7 +60,7 @@ public class ImGuiMoonWorksBackend
 
 	private Matrix4x4 _proj;
 
-	private static readonly Dictionary<IntPtr, Texture> Textures = new();
+	private static readonly Dictionary<IntPtr, Texture> Textures = new Dictionary<nint, Texture>();
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	private delegate string GetClipboardDelegate(IntPtr userData);
@@ -97,7 +97,7 @@ public class ImGuiMoonWorksBackend
 
 		Inputs.TextInput += TextInput;
 
-		var ctx = ImGui.CreateContext();
+		nint ctx = ImGui.CreateContext();
 		ImGui.SetCurrentContext(ctx);
 
 		Resize(size);
@@ -110,7 +110,7 @@ public class ImGuiMoonWorksBackend
 		_vertBuf = Buffer.Create<ImGuiVert>(gd, BufferUsageFlags.Vertex, 1024 * 4);
 		_idxBuf = Buffer.Create<ushort>(gd, BufferUsageFlags.Index, 1024 * 6);
 
-		var io = ImGui.GetIO();
+		ImGuiIOPtr io = ImGui.GetIO();
 		io.GetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(GetClipboardFn);
 		io.SetClipboardTextFn = Marshal.GetFunctionPointerForDelegate(SetClipboardFn);
 
@@ -122,18 +122,18 @@ public class ImGuiMoonWorksBackend
 	}
 
 	/// <summary>
-	/// Starts a new ImGui frame and updates I/O.
+	///     Starts a new ImGui frame and updates I/O.
 	/// </summary>
 	/// <remarks>
-	/// Call inside <see cref="Game.Update"/>.
+	///     Call inside <see cref="Game.Update" />.
 	/// </remarks>
 	/// <param name="inputs">Current input state</param>
 	/// <param name="delta">Delta time</param>
 	public void NewFrame(Inputs inputs, TimeSpan delta)
 	{
-		var io = ImGui.GetIO();
+		ImGuiIOPtr io = ImGui.GetIO();
 
-		io.DeltaTime = (float)delta.TotalSeconds;
+		io.DeltaTime = (float) delta.TotalSeconds;
 
 		io.AddMousePosEvent(inputs.Mouse.X, inputs.Mouse.Y);
 		io.AddMouseWheelEvent(0, inputs.Mouse.Wheel);
@@ -151,76 +151,85 @@ public class ImGuiMoonWorksBackend
 		}
 
 		if (inputs.Mouse.LeftButton.IsPressed || inputs.Mouse.LeftButton.IsReleased)
+		{
 			io.AddMouseButtonEvent(0, inputs.Mouse.LeftButton.IsDown);
+		}
 
 		if (inputs.Mouse.RightButton.IsPressed || inputs.Mouse.RightButton.IsReleased)
+		{
 			io.AddMouseButtonEvent(1, inputs.Mouse.RightButton.IsDown);
+		}
 
 		if (inputs.Mouse.MiddleButton.IsPressed || inputs.Mouse.MiddleButton.IsReleased)
-			io.AddMouseButtonEvent(2, inputs.Mouse.MiddleButton.IsDown);
-
-		foreach (var key in Keys.Keys)
 		{
-			if (!inputs.Keyboard.IsPressed(key) && !inputs.Keyboard.IsReleased(key)) continue;
+			io.AddMouseButtonEvent(2, inputs.Mouse.MiddleButton.IsDown);
+		}
+
+		foreach (KeyCode key in Keys.Keys)
+		{
+			if (!inputs.Keyboard.IsPressed(key) && !inputs.Keyboard.IsReleased(key))
+			{
+				continue;
+			}
 
 			io.AddKeyEvent(Keys.GetValueOrDefault(key, ImGuiKey.None), inputs.Keyboard.IsDown(key));
-			io.SetKeyEventNativeData(Keys.GetValueOrDefault(key, ImGuiKey.None), (int)key, (int)key);
+			io.SetKeyEventNativeData(Keys.GetValueOrDefault(key, ImGuiKey.None), (int) key, (int) key);
 		}
 	}
 
 	/// <summary>
-	/// Builds the vertex and index buffers used for ImGui rendering.
+	///     Builds the vertex and index buffers used for ImGui rendering.
 	/// </summary>
 	/// <remarks>
-	/// Call after <see cref="ImGui.Render"/> and before <see cref="Render"/>.
-	/// Must not be called during a render pass.
+	///     Call after <see cref="ImGui.Render" /> and before <see cref="Render" />.
+	///     Must not be called during a render pass.
 	/// </remarks>
-	/// <param name="data">ImGui draw data from <see cref="ImGui.GetDrawData"/></param>
+	/// <param name="data">ImGui draw data from <see cref="ImGui.GetDrawData" /></param>
 	/// <param name="cb">Command buffer, must not have active render pass</param>
 	public unsafe void BuildBuffers(ImDrawDataPtr data, CommandBuffer cb)
 	{
 		if (data.TotalVtxCount > _vertBuf.Size / sizeof(ImGuiVert))
 		{
 			_vertBuf.Dispose();
-			_vertBuf = Buffer.Create<ImGuiVert>(_gd, BufferUsageFlags.Vertex, (uint)data.TotalVtxCount);
+			_vertBuf = Buffer.Create<ImGuiVert>(_gd, BufferUsageFlags.Vertex, (uint) data.TotalVtxCount);
 		}
 
 		if (data.TotalIdxCount > _idxBuf.Size / sizeof(ushort))
 		{
 			_idxBuf.Dispose();
-			_idxBuf = Buffer.Create<ushort>(_gd, BufferUsageFlags.Index, (uint)data.TotalIdxCount);
+			_idxBuf = Buffer.Create<ushort>(_gd, BufferUsageFlags.Index, (uint) data.TotalIdxCount);
 		}
 
 		uint vtxOffset = 0;
 		uint idxOffset = 0;
 
-		for (var i = 0; i < data.CmdListsCount; i++)
+		for (int i = 0; i < data.CmdListsCount; i++)
 		{
-			var list = data.CmdListsRange[i];
+			ImDrawListPtr list = data.CmdListsRange[i];
 
-			cb.SetBufferData<ImGuiVert>(_vertBuf, list.VtxBuffer.Data, vtxOffset, (uint)list.VtxBuffer.Size);
-			cb.SetBufferData<ushort>(_idxBuf, list.IdxBuffer.Data, idxOffset, (uint)list.IdxBuffer.Size);
+			cb.SetBufferData<ImGuiVert>(_vertBuf, list.VtxBuffer.Data, vtxOffset, (uint) list.VtxBuffer.Size);
+			cb.SetBufferData<ushort>(_idxBuf, list.IdxBuffer.Data, idxOffset, (uint) list.IdxBuffer.Size);
 
-			vtxOffset += (uint)list.VtxBuffer.Size;
-			idxOffset += (uint)list.IdxBuffer.Size;
+			vtxOffset += (uint) list.VtxBuffer.Size;
+			idxOffset += (uint) list.IdxBuffer.Size;
 		}
 
 		_data = data;
 	}
 
 	/// <summary>
-	/// Renders the Dear ImGui windows.
+	///     Renders the Dear ImGui windows.
 	/// </summary>
 	/// <remarks>
-	/// Call after <see cref="BuildBuffers"/>, inside of a render pass.
+	///     Call after <see cref="BuildBuffers" />, inside of a render pass.
 	/// </remarks>
 	/// <param name="cb">Command buffer, must have an active render pass</param>
 	public void Render(CommandBuffer cb)
 	{
-		var io = ImGui.GetIO();
+		ImGuiIOPtr io = ImGui.GetIO();
 
 		cb.BindGraphicsPipeline(_pipeline);
-		var vtxUniform = cb.PushVertexShaderUniforms(_proj);
+		uint vtxUniform = cb.PushVertexShaderUniforms(_proj);
 
 		cb.BindVertexBuffers(_vertBuf);
 		cb.BindIndexBuffer(_idxBuf, IndexElementSize.Sixteen);
@@ -228,21 +237,21 @@ public class ImGuiMoonWorksBackend
 		uint vtxOffset = 0;
 		uint idxOffset = 0;
 
-		for (var j = 0; j < _data.CmdListsCount; j++)
+		for (int j = 0; j < _data.CmdListsCount; j++)
 		{
-			var list = _data.CmdListsRange[j];
+			ImDrawListPtr list = _data.CmdListsRange[j];
 
-			for (var i = 0; i < list.CmdBuffer.Size; i++)
+			for (int i = 0; i < list.CmdBuffer.Size; i++)
 			{
-				var cmd = list.CmdBuffer[i];
+				ImDrawCmdPtr cmd = list.CmdBuffer[i];
 
 				cb.BindFragmentSamplers(new TextureSamplerBinding(Lookup(cmd.TextureId), _sampler));
 				cb.SetScissor(
 					new Rect(
-						(int)Math.Clamp(cmd.ClipRect.X, 0, io.DisplaySize.X),
-						(int)Math.Clamp(cmd.ClipRect.Y, 0, io.DisplaySize.Y),
-						(int)Math.Clamp(cmd.ClipRect.Z - cmd.ClipRect.X, 0, io.DisplaySize.X),
-						(int)Math.Clamp(cmd.ClipRect.W - cmd.ClipRect.Y, 0, io.DisplaySize.Y)
+						(int) Math.Clamp(cmd.ClipRect.X, 0, io.DisplaySize.X),
+						(int) Math.Clamp(cmd.ClipRect.Y, 0, io.DisplaySize.Y),
+						(int) Math.Clamp(cmd.ClipRect.Z - cmd.ClipRect.X, 0, io.DisplaySize.X),
+						(int) Math.Clamp(cmd.ClipRect.W - cmd.ClipRect.Y, 0, io.DisplaySize.Y)
 					)
 				);
 
@@ -250,35 +259,35 @@ public class ImGuiMoonWorksBackend
 					vtxUniform, 0);
 			}
 
-			vtxOffset += (uint)list.VtxBuffer.Size;
-			idxOffset += (uint)list.IdxBuffer.Size;
+			vtxOffset += (uint) list.VtxBuffer.Size;
+			idxOffset += (uint) list.IdxBuffer.Size;
 		}
 	}
 
 	/// <summary>
-	/// (Re)uploads the inbuilt ImGui texture.
+	///     (Re)uploads the inbuilt ImGui texture.
 	/// </summary>
 	/// <remarks>
-	/// Call after changing font settings.
+	///     Call after changing font settings.
 	/// </remarks>
 	/// <param name="cb">Command buffer, must not have active render pass</param>
 	public void UploadInbuiltTexture(CommandBuffer cb)
 	{
-		var io = ImGui.GetIO();
+		ImGuiIOPtr io = ImGui.GetIO();
 
-		io.Fonts.GetTexDataAsRGBA32(out IntPtr pixelPtr, out var width, out var height, out var bpp);
+		io.Fonts.GetTexDataAsRGBA32(out IntPtr pixelPtr, out int width, out int height, out int bpp);
 
 		_inbuiltTexture?.Dispose();
-		_inbuiltTexture = Texture.CreateTexture2D(_gd, (uint)width, (uint)height, TextureFormat.R8G8B8A8,
+		_inbuiltTexture = Texture.CreateTexture2D(_gd, (uint) width, (uint) height, TextureFormat.R8G8B8A8,
 			TextureUsageFlags.Sampler);
 
-		cb.SetTextureData(_inbuiltTexture, pixelPtr, (uint)(width * height * bpp));
+		cb.SetTextureData(_inbuiltTexture, pixelPtr, (uint) (width * height * bpp));
 
 		io.Fonts.SetTexID(_inbuiltTexture.Handle);
 	}
 
 	/// <summary>
-	/// Binds a texture to use in the renderer.
+	///     Binds a texture to use in the renderer.
 	/// </summary>
 	/// <param name="texture">Texture</param>
 	/// <returns>Texture handle to pass into ImGui</returns>
@@ -289,7 +298,7 @@ public class ImGuiMoonWorksBackend
 	}
 
 	/// <summary>
-	/// Unbinds a texture from the renderer.
+	///     Unbinds a texture from the renderer.
 	/// </summary>
 	/// <param name="texture">Texture</param>
 	public static void UnbindTexture(Texture texture)
@@ -298,7 +307,7 @@ public class ImGuiMoonWorksBackend
 	}
 
 	/// <summary>
-	/// Resizes ImGui viewport to the size of the given window.
+	///     Resizes ImGui viewport to the size of the given window.
 	/// </summary>
 	/// <param name="window">Window to resize to</param>
 	public void Resize(Window window)
@@ -307,20 +316,20 @@ public class ImGuiMoonWorksBackend
 	}
 
 	/// <summary>
-	/// Resizes ImGui viewport to a given size.
+	///     Resizes ImGui viewport to a given size.
 	/// </summary>
 	/// <param name="size">Size of the viewport</param>
 	public void Resize(Vector2 size)
 	{
 		_proj = Matrix4x4.CreateOrthographicOffCenter(0, size.X, size.Y, 0, -1.0f, 1.0f);
 
-		var io = ImGui.GetIO();
+		ImGuiIOPtr io = ImGui.GetIO();
 		io.DisplaySize = new System.Numerics.Vector2(size.X, size.Y);
 	}
 
 	private void BuildPipeline(GraphicsDevice gd, TextureFormat format)
 	{
-		var gpci = new GraphicsPipelineCreateInfo
+		GraphicsPipelineCreateInfo gpci = new GraphicsPipelineCreateInfo
 		{
 			AttachmentInfo = new GraphicsPipelineAttachmentInfo(
 				new ColorAttachmentDescription(format, ColorAttachmentBlendState.NonPremultiplied)

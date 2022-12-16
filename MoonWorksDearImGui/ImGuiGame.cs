@@ -31,17 +31,17 @@ public class ImGuiGame : Game
 {
 	private readonly ImGuiMoonWorksBackend _imBackend;
 	private readonly Texture _texture;
-	
+
 	public ImGuiGame(WindowCreateInfo windowCreateInfo, FrameLimiterSettings frameLimiterSettings,
 		int targetTimestep = 60, bool debugMode = false) : base(windowCreateInfo, frameLimiterSettings, targetTimestep,
 		debugMode)
 	{
-		var cb = GraphicsDevice.AcquireCommandBuffer();
+		CommandBuffer cb = GraphicsDevice.AcquireCommandBuffer();
 		_imBackend = new ImGuiMoonWorksBackend(GraphicsDevice, cb, MainWindow);
 		_texture = Texture.LoadPNG(GraphicsDevice, cb, "Content/Example.png");
 		GraphicsDevice.Submit(cb);
 	}
-	
+
 	protected override void Update(TimeSpan delta)
 	{
 		_imBackend.NewFrame(Inputs, delta);
@@ -51,26 +51,27 @@ public class ImGuiGame : Game
 		{
 			ImGui.Image(ImGuiMoonWorksBackend.BindTexture(_texture), new Vector2(500, 400));
 		}
+
 		ImGui.End();
-		
+
 		ImGui.ShowDemoWindow();
-		
+
 		ImGui.EndFrame();
 	}
 
 	protected override void Draw(double alpha)
 	{
-		var cb = GraphicsDevice.AcquireCommandBuffer();
-		var swapchainTexture = cb.AcquireSwapchainTexture(MainWindow);
-		
+		CommandBuffer cb = GraphicsDevice.AcquireCommandBuffer();
+		Texture? swapchainTexture = cb.AcquireSwapchainTexture(MainWindow);
+
 		ImGui.Render();
-		
+
 		_imBackend.BuildBuffers(ImGui.GetDrawData(), cb);
-		
+
 		cb.BeginRenderPass(new ColorAttachmentInfo(swapchainTexture, Color.CornflowerBlue));
 		_imBackend.Render(cb);
 		cb.EndRenderPass();
-		
+
 		GraphicsDevice.Submit(cb);
 	}
 }
